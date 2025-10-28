@@ -10,7 +10,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.letsgotoperfection.editor.impl.ui.screen.EditorScreen
+import com.letsgotoperfection.systems.editor.EditorScreenWrapper
 import com.letsgotoperfection.journal.JournalScreen
 
 @Composable
@@ -35,7 +35,7 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
 
         composable("editor/{documentId}") { backStackEntry ->
             val documentId = backStackEntry.arguments?.getString("documentId")
-            EditorScreen(
+            EditorScreenWrapper(
                 documentId = if (documentId == "new") null else documentId,
                 onNavigateBack = { navController.popBackStack() }
             )
