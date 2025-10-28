@@ -6,6 +6,7 @@ import com.letsgotoperfection.editor.api.repository.EditorRepository
 import com.letsgotoperfection.editor.impl.data.database.DocumentDao
 import com.letsgotoperfection.editor.impl.data.database.EditorDatabase
 import com.letsgotoperfection.editor.impl.data.repository.EditorRepositoryImpl
+import com.letsgotoperfection.editor.impl.formatting.TextFormatter
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -46,5 +47,10 @@ object EditorModule {
         documentDao: DocumentDao
     ): EditorRepository {
         return EditorRepositoryImpl(documentDao)
+    }
+
+    @Provides
+    fun provideTextFormatter(): TextFormatter {
+        return TextFormatter()
     }
 }
