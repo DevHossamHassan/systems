@@ -82,9 +82,9 @@ fun JournalEntryCard(
             // Show first text block as preview
             entry.blocks.firstOrNull()?.let { block ->
                 when (block) {
-                    is ContentBlock.TextBlock -> {
+                    is TextBlock -> {
                         Text(
-                            text = block.text,
+                            text = block.text.text,
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             maxLines = 2
@@ -112,17 +112,17 @@ private fun createSampleJournalEntry(title: String, content: String): EditorDocu
         id = java.util.UUID.randomUUID().toString(),
         title = title,
         blocks = listOf(
-            ContentBlock.TextBlock(
+            TextBlock(
                 id = java.util.UUID.randomUUID().toString(),
-                text = content,
-                style = TextBlockStyle.PARAGRAPH
+                text = androidx.compose.ui.text.AnnotatedString(content),
+                style = TextBlockStyle.Body
             )
         ),
         metadata = DocumentMetadata(
             tags = listOf("journal"),
-            isFavorite = false
+            favorite = false
         ),
-        createdAt = Instant.now(),
-        updatedAt = Instant.now()
+        createdAt = System.currentTimeMillis(),
+        updatedAt = System.currentTimeMillis()
     )
 }
