@@ -359,11 +359,38 @@ private fun TextBlockView(
     onDelete: () -> Unit,
     onFocus: () -> Unit
 ) {
+    var text by remember(block.id) { mutableStateOf(block.text.text) }
+
     TextField(
-        value = block.text.text,
-        onValueChange = { /* Handle text change */ },
-        modifier = Modifier.fillMaxWidth(),
-        placeholder = { Text("Type something...") }
+        value = text,
+        onValueChange = { newText ->
+            text = newText
+            val updatedBlock = block.copy(
+                text = androidx.compose.ui.text.AnnotatedString(newText)
+            )
+            onUpdate(updatedBlock)
+        },
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 120.dp),
+        placeholder = { Text("Type something...") },
+        minLines = 6,
+        maxLines = Int.MAX_VALUE,
+        textStyle = when (block.style) {
+            is TextBlockStyle.Heading1 -> MaterialTheme.typography.headlineLarge
+            is TextBlockStyle.Heading2 -> MaterialTheme.typography.headlineMedium
+            is TextBlockStyle.Heading3 -> MaterialTheme.typography.headlineSmall
+            is TextBlockStyle.Heading4 -> MaterialTheme.typography.titleLarge
+            is TextBlockStyle.Heading5 -> MaterialTheme.typography.titleMedium
+            is TextBlockStyle.Heading6 -> MaterialTheme.typography.titleSmall
+            else -> MaterialTheme.typography.bodyLarge
+        },
+        colors = TextFieldDefaults.colors(
+            focusedContainerColor = MaterialTheme.colorScheme.surface,
+            unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+            focusedIndicatorColor = MaterialTheme.colorScheme.primary,
+            unfocusedIndicatorColor = MaterialTheme.colorScheme.surfaceVariant
+        )
     )
 }
 
@@ -384,8 +411,66 @@ private fun ChecklistBlockView(
     onUpdate: (ContentBlock) -> Unit,
     onDelete: () -> Unit
 ) {
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Text("Checklist: ${block.items.size} items", modifier = Modifier.padding(16.dp))
+    Column(modifier = Modifier.fillMaxWidth()) {
+        block.items.forEachIndexed { index, item ->
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 4.dp),
+                verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+            ) {
+                Checkbox(
+                    checked = item.isChecked,
+                    onCheckedChange = { checked ->
+                        val updatedItems = block.items.toMutableList()
+                        updatedItems[index] = item.copy(
+                            isChecked = checked,
+                            completedAt = if (checked) System.currentTimeMillis() else null
+                        )
+                        val updatedBlock = block.copy(items = updatedItems)
+                        onUpdate(updatedBlock)
+                    }
+                )
+                Spacer(Modifier.width(8.dp))
+                var itemText by remember(item.id) { mutableStateOf(item.text.text) }
+                TextField(
+                    value = itemText,
+                    onValueChange = { newText ->
+                        itemText = newText
+                        val updatedItems = block.items.toMutableList()
+                        updatedItems[index] = item.copy(
+                            text = androidx.compose.ui.text.AnnotatedString(newText)
+                        )
+                        val updatedBlock = block.copy(items = updatedItems)
+                        onUpdate(updatedBlock)
+                    },
+                    modifier = Modifier.weight(1f),
+                    placeholder = { Text("List item") },
+                    singleLine = true,
+                    colors = TextFieldDefaults.colors(
+                        focusedContainerColor = MaterialTheme.colorScheme.surface,
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surface
+                    )
+                )
+            }
+        }
+
+        // Add new item button
+        TextButton(
+            onClick = {
+                val newItem = ChecklistItem(
+                    text = androidx.compose.ui.text.AnnotatedString(""),
+                    position = block.items.size
+                )
+                val updatedBlock = block.copy(items = block.items + newItem)
+                onUpdate(updatedBlock)
+            },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Icon(Icons.Default.Add, null)
+            Spacer(Modifier.width(8.dp))
+            Text("Add item")
+        }
     }
 }
 
@@ -410,7 +495,36 @@ private fun CodeBlockView(
     onUpdate: (ContentBlock) -> Unit,
     onDelete: () -> Unit
 ) {
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Text(block.code, modifier = Modifier.padding(16.dp))
+    var code by remember(block.id) { mutableStateOf(block.code) }
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
+        )
+    ) {
+        TextField(
+            value = code,
+            onValueChange = { newCode ->
+                code = newCode
+                val updatedBlock = block.copy(code = newCode)
+                onUpdate(updatedBlock)
+            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(8.dp),
+            placeholder = { Text("Enter code...") },
+            minLines = 5,
+            maxLines = Int.MAX_VALUE,
+            textStyle = MaterialTheme.typography.bodyMedium.copy(
+                fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace
+            ),
+            colors = TextFieldDefaults.colors(
+                focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                focusedIndicatorColor = MaterialTheme.colorScheme.primary,
+                unfocusedIndicatorColor = MaterialTheme.colorScheme.surfaceVariant
+            )
+        )
     }
 }
