@@ -62,6 +62,9 @@ dependencies {
     // Editor module
     implementation(project(":editor:impl"))
 
+    // Feature modules
+    implementation(project(":journal"))
+
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

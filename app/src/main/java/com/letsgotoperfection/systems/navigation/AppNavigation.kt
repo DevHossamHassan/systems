@@ -11,6 +11,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.letsgotoperfection.editor.impl.ui.screen.EditorScreen
+import com.letsgotoperfection.journal.JournalScreen
 
 @Composable
 fun AppNavigation(navController: NavHostController = rememberNavController()) {
@@ -20,7 +21,15 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
     ) {
         composable("home") {
             HomeScreen(
-                onNewDocument = { navController.navigate("editor/new") }
+                onNewDocument = { navController.navigate("editor/new") },
+                onOpenJournal = { navController.navigate("journal") }
+            )
+        }
+
+        composable("journal") {
+            JournalScreen(
+                onCreateEntry = { navController.navigate("editor/new") },
+                onEntryClick = { documentId -> navController.navigate("editor/$documentId") }
             )
         }
 
@@ -35,7 +44,10 @@ fun AppNavigation(navController: NavHostController = rememberNavController()) {
 }
 
 @Composable
-fun HomeScreen(onNewDocument: () -> Unit) {
+fun HomeScreen(
+    onNewDocument: () -> Unit,
+    onOpenJournal: () -> Unit
+) {
     Column(
         modifier = Modifier.fillMaxSize(),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -48,6 +60,10 @@ fun HomeScreen(onNewDocument: () -> Unit) {
         Spacer(modifier = Modifier.height(32.dp))
         Button(onClick = onNewDocument) {
             Text("Create New Document")
+        }
+        Spacer(modifier = Modifier.height(16.dp))
+        Button(onClick = onOpenJournal) {
+            Text("Open Journal")
         }
     }
 }
