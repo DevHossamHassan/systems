@@ -10,6 +10,27 @@ import com.letsgotoperfection.editor.impl.formatting.TextFormatter
 import com.letsgotoperfection.editor.impl.ui.screen.EditorViewModel
 
 /**
+ * Singleton holder for the editor database to prevent multiple instances.
+ */
+object EditorDatabaseHolder {
+    @Volatile
+    private var INSTANCE: EditorDatabase? = null
+
+    fun getDatabase(context: Context): EditorDatabase {
+        return INSTANCE ?: synchronized(this) {
+            val instance = Room.databaseBuilder(
+                context.applicationContext,
+                EditorDatabase::class.java,
+                "editor_database"
+            ).fallbackToDestructiveMigration()
+                .build()
+            INSTANCE = instance
+            instance
+        }
+    }
+}
+
+/**
  * Factory for creating EditorViewModel without Hilt dependency injection.
  */
 class EditorViewModelFactory(
@@ -19,13 +40,8 @@ class EditorViewModelFactory(
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(EditorViewModel::class.java)) {
-            // Create database
-            val database = Room.databaseBuilder(
-                context.applicationContext,
-                EditorDatabase::class.java,
-                "editor_database"
-            ).fallbackToDestructiveMigration()
-                .build()
+            // Get singleton database instance
+            val database = EditorDatabaseHolder.getDatabase(context)
 
             // Create repository
             val repository = EditorRepositoryImpl(database.documentDao())

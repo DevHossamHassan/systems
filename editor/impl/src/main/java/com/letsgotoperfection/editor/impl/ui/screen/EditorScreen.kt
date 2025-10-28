@@ -245,7 +245,6 @@ private fun FormattingToolbar(
         IconButton(onClick = { onHeadingClick(TextBlockStyle.Heading2) }) {
             Text("H2", style = MaterialTheme.typography.labelSmall)
         }
-        VerticalDivider()
         IconButton(onClick = { onListClick(TextBlockStyle.UnorderedList) }) {
             Icon(Icons.Default.FormatListBulleted, "Bullet list")
         }
