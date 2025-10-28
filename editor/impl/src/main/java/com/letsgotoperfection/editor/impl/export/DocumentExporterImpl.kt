@@ -11,10 +11,7 @@ import javax.inject.Inject
  * Implementation of DocumentExporter.
  */
 class DocumentExporterImpl @Inject constructor(
-    private val json: Json = Json {
-        prettyPrint = true
-        ignoreUnknownKeys = true
-    }
+    private val json: Json
 ) : DocumentExporter {
 
     override suspend fun export(document: EditorDocument, format: ExportFormat): Result<String> {

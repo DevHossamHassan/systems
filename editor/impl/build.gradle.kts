@@ -4,6 +4,7 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.ksp)
+    id("kotlin-kapt")
     alias(libs.plugins.hilt)
 }
 
@@ -69,7 +70,7 @@ dependencies {
 
     // Hilt DI
     implementation(libs.hilt)
-    ksp(libs.hilt.compiler)
+    kapt(libs.hilt.compiler)
     implementation(libs.hilt.navigation)
 
     // Coil for image loading
