@@ -1,8 +1,10 @@
 package com.letsgotoperfection.editor.impl.ui.screen
 
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -13,7 +15,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.letsgotoperfection.editor.api.model.*
 
 /**
- * Main editor screen composable.
+ * Main editor screen composable - Text-first editor with block insertion.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -120,40 +122,55 @@ fun EditorScreen(
                 HorizontalDivider()
             }
 
-            // Content blocks
+            // Content blocks - Text-first approach
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(horizontal = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                contentPadding = PaddingValues(vertical = 16.dp)
             ) {
-                items(
-                    items = state.document.blocks,
-                    key = { it.id }
-                ) { block ->
-                    BlockRenderer(
-                        block = block,
-                        onBlockUpdate = { updatedBlock ->
-                            viewModel.updateBlock(updatedBlock)
-                        },
-                        onBlockDelete = {
-                            viewModel.deleteBlock(block.id)
-                        },
-                        onBlockFocus = {
-                            viewModel.setFocusedBlock(block.id)
-                        }
-                    )
+                // If no blocks exist, show a default text block
+                if (state.document.blocks.isEmpty()) {
+                    item {
+                        Text(
+                            text = "Start typing...",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(16.dp)
+                        )
+                    }
+                } else {
+                    items(
+                        items = state.document.blocks,
+                        key = { it.id }
+                    ) { block ->
+                        BlockRenderer(
+                            block = block,
+                            onBlockUpdate = { updatedBlock ->
+                                viewModel.updateBlock(updatedBlock)
+                            },
+                            onBlockDelete = {
+                                viewModel.deleteBlock(block.id)
+                            },
+                            onBlockFocus = {
+                                viewModel.setFocusedBlock(block.id)
+                            }
+                        )
+                    }
                 }
 
                 // Add new block button
                 item {
-                    TextButton(
+                    OutlinedButton(
                         onClick = { viewModel.addTextBlock() },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 8.dp)
                     ) {
-                        Icon(Icons.Default.Add, "Add block")
+                        Icon(Icons.Default.Add, "Add text block")
                         Spacer(Modifier.width(8.dp))
-                        Text("Add block")
+                        Text("Add text block")
                     }
                 }
             }
@@ -175,7 +192,7 @@ fun EditorScreen(
 }
 
 @Composable
-private fun BlockRenderer(
+internal fun BlockRenderer(
     block: ContentBlock,
     onBlockUpdate: (ContentBlock) -> Unit,
     onBlockDelete: () -> Unit,
@@ -184,18 +201,18 @@ private fun BlockRenderer(
     when (block) {
         is TextBlock -> TextBlockView(
             block = block,
-            onUpdate = onBlockUpdate,
+            onUpdate = { onBlockUpdate(it) },
             onDelete = onBlockDelete,
             onFocus = onBlockFocus
         )
         is MediaBlock -> MediaBlockView(
             block = block,
-            onUpdate = onBlockUpdate,
+            onUpdate = { onBlockUpdate(it) },
             onDelete = onBlockDelete
         )
         is ChecklistBlock -> ChecklistBlockView(
             block = block,
-            onUpdate = onBlockUpdate,
+            onUpdate = { onBlockUpdate(it) },
             onDelete = onBlockDelete
         )
         is FileAttachmentBlock -> FileAttachmentBlockView(
@@ -205,14 +222,14 @@ private fun BlockRenderer(
         is DividerBlock -> DividerBlockView(block = block)
         is CodeBlock -> CodeBlockView(
             block = block,
-            onUpdate = onBlockUpdate,
+            onUpdate = { onBlockUpdate(it) },
             onDelete = onBlockDelete
         )
     }
 }
 
 @Composable
-private fun FormattingToolbar(
+internal fun FormattingToolbar(
     onBoldClick: () -> Unit,
     onItalicClick: () -> Unit,
     onUnderlineClick: () -> Unit,
@@ -222,44 +239,81 @@ private fun FormattingToolbar(
     onInsertLink: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Row(
-        modifier = modifier.padding(8.dp),
-        horizontalArrangement = Arrangement.spacedBy(4.dp)
+    Surface(
+        modifier = modifier,
+        color = MaterialTheme.colorScheme.surfaceVariant
     ) {
-        IconButton(onClick = onBoldClick) {
-            Icon(Icons.Default.FormatBold, "Bold")
-        }
-        IconButton(onClick = onItalicClick) {
-            Icon(Icons.Default.FormatItalic, "Italic")
-        }
-        IconButton(onClick = onUnderlineClick) {
-            Icon(Icons.Default.FormatUnderlined, "Underline")
-        }
-        IconButton(onClick = onStrikethroughClick) {
-            Icon(Icons.Default.FormatStrikethrough, "Strikethrough")
-        }
-        VerticalDivider()
-        IconButton(onClick = { onHeadingClick(TextBlockStyle.Heading1) }) {
-            Text("H1", style = MaterialTheme.typography.labelSmall)
-        }
-        IconButton(onClick = { onHeadingClick(TextBlockStyle.Heading2) }) {
-            Text("H2", style = MaterialTheme.typography.labelSmall)
-        }
-        IconButton(onClick = { onListClick(TextBlockStyle.UnorderedList) }) {
-            Icon(Icons.Default.FormatListBulleted, "Bullet list")
-        }
-        IconButton(onClick = { onListClick(TextBlockStyle.OrderedList) }) {
-            Icon(Icons.Default.FormatListNumbered, "Numbered list")
-        }
-        VerticalDivider()
-        IconButton(onClick = onInsertLink) {
-            Icon(Icons.Default.Link, "Insert link")
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(8.dp)
+                .horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            // Text formatting
+            IconButton(onClick = onBoldClick) {
+                Text("B", style = MaterialTheme.typography.labelLarge.copy(fontWeight = androidx.compose.ui.text.font.FontWeight.Bold))
+            }
+            IconButton(onClick = onItalicClick) {
+                Text("I", style = MaterialTheme.typography.labelLarge.copy(fontStyle = androidx.compose.ui.text.font.FontStyle.Italic))
+            }
+            IconButton(onClick = onUnderlineClick) {
+                Text("U", style = MaterialTheme.typography.labelLarge.copy(textDecoration = androidx.compose.ui.text.style.TextDecoration.Underline))
+            }
+            IconButton(onClick = onStrikethroughClick) {
+                Text("S", style = MaterialTheme.typography.labelLarge.copy(textDecoration = androidx.compose.ui.text.style.TextDecoration.LineThrough))
+            }
+
+            Divider(
+                modifier = Modifier
+                    .width(1.dp)
+                    .height(32.dp)
+                    .padding(horizontal = 4.dp)
+            )
+
+            // Headings
+            IconButton(onClick = { onHeadingClick(TextBlockStyle.Heading1) }) {
+                Text("H1", style = MaterialTheme.typography.labelSmall)
+            }
+            IconButton(onClick = { onHeadingClick(TextBlockStyle.Heading2) }) {
+                Text("H2", style = MaterialTheme.typography.labelSmall)
+            }
+            IconButton(onClick = { onHeadingClick(TextBlockStyle.Heading3) }) {
+                Text("H3", style = MaterialTheme.typography.labelSmall)
+            }
+
+            Divider(
+                modifier = Modifier
+                    .width(1.dp)
+                    .height(32.dp)
+                    .padding(horizontal = 4.dp)
+            )
+
+            // Lists
+            IconButton(onClick = { onListClick(TextBlockStyle.UnorderedList) }) {
+                Icon(Icons.Default.List, "Bullet list")
+            }
+            IconButton(onClick = { onListClick(TextBlockStyle.OrderedList) }) {
+                Icon(Icons.Default.FilterList, "Numbered list")
+            }
+
+            Divider(
+                modifier = Modifier
+                    .width(1.dp)
+                    .height(32.dp)
+                    .padding(horizontal = 4.dp)
+            )
+
+            // Link
+            IconButton(onClick = onInsertLink) {
+                Icon(Icons.Default.Link, "Insert link")
+            }
         }
     }
 }
 
 @Composable
-private fun InsertMenuDialog(
+internal fun InsertMenuDialog(
     onDismiss: () -> Unit,
     onInsertText: () -> Unit,
     onInsertImage: () -> Unit,
@@ -270,74 +324,77 @@ private fun InsertMenuDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Insert block") },
+        title = { Text("Insert Block") },
         text = {
-            Column {
-                TextButton(
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                OutlinedButton(
                     onClick = {
                         onInsertText()
                         onDismiss()
                     },
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Icon(Icons.Default.TextFields, null)
-                    Spacer(Modifier.width(8.dp))
-                    Text("Text")
+                    Icon(Icons.Default.Create, null, modifier = Modifier.size(20.dp))
+                    Spacer(Modifier.width(12.dp))
+                    Text("Text", modifier = Modifier.weight(1f), textAlign = androidx.compose.ui.text.style.TextAlign.Start)
                 }
-                TextButton(
+                OutlinedButton(
                     onClick = {
                         onInsertImage()
                         onDismiss()
                     },
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Icon(Icons.Default.Image, null)
-                    Spacer(Modifier.width(8.dp))
-                    Text("Image")
+                    Icon(Icons.Default.Image, null, modifier = Modifier.size(20.dp))
+                    Spacer(Modifier.width(12.dp))
+                    Text("Image", modifier = Modifier.weight(1f), textAlign = androidx.compose.ui.text.style.TextAlign.Start)
                 }
-                TextButton(
+                OutlinedButton(
                     onClick = {
                         onInsertVideo()
                         onDismiss()
                     },
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Icon(Icons.Default.VideoLibrary, null)
-                    Spacer(Modifier.width(8.dp))
-                    Text("Video")
+                    Icon(Icons.Default.PlayArrow, null, modifier = Modifier.size(20.dp))
+                    Spacer(Modifier.width(12.dp))
+                    Text("Video", modifier = Modifier.weight(1f), textAlign = androidx.compose.ui.text.style.TextAlign.Start)
                 }
-                TextButton(
+                OutlinedButton(
                     onClick = {
                         onInsertChecklist()
                         onDismiss()
                     },
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Icon(Icons.Default.Checklist, null)
-                    Spacer(Modifier.width(8.dp))
-                    Text("Checklist")
+                    Icon(Icons.Default.CheckCircle, null, modifier = Modifier.size(20.dp))
+                    Spacer(Modifier.width(12.dp))
+                    Text("Checklist", modifier = Modifier.weight(1f), textAlign = androidx.compose.ui.text.style.TextAlign.Start)
                 }
-                TextButton(
+                OutlinedButton(
                     onClick = {
                         onInsertCode()
                         onDismiss()
                     },
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Icon(Icons.Default.Code, null)
-                    Spacer(Modifier.width(8.dp))
-                    Text("Code block")
+                    Icon(Icons.Default.Code, null, modifier = Modifier.size(20.dp))
+                    Spacer(Modifier.width(12.dp))
+                    Text("Code Block", modifier = Modifier.weight(1f), textAlign = androidx.compose.ui.text.style.TextAlign.Start)
                 }
-                TextButton(
+                OutlinedButton(
                     onClick = {
                         onInsertDivider()
                         onDismiss()
                     },
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Icon(Icons.Default.HorizontalRule, null)
-                    Spacer(Modifier.width(8.dp))
-                    Text("Divider")
+                    Icon(Icons.Default.Remove, null, modifier = Modifier.size(20.dp))
+                    Spacer(Modifier.width(12.dp))
+                    Text("Divider", modifier = Modifier.weight(1f), textAlign = androidx.compose.ui.text.style.TextAlign.Start)
                 }
             }
         },
@@ -350,9 +407,9 @@ private fun InsertMenuDialog(
     )
 }
 
-// Placeholder composables for block views
+// Block view composables
 @Composable
-private fun TextBlockView(
+internal fun TextBlockView(
     block: TextBlock,
     onUpdate: (ContentBlock) -> Unit,
     onDelete: () -> Unit,
@@ -360,7 +417,7 @@ private fun TextBlockView(
 ) {
     var text by remember(block.id) { mutableStateOf(block.text.text) }
 
-    TextField(
+    OutlinedTextField(
         value = text,
         onValueChange = { newText ->
             text = newText
@@ -371,10 +428,9 @@ private fun TextBlockView(
         },
         modifier = Modifier
             .fillMaxWidth()
-            .heightIn(min = 120.dp),
-        placeholder = { Text("Type something...") },
-        minLines = 6,
-        maxLines = Int.MAX_VALUE,
+            .heightIn(min = 80.dp),
+        placeholder = { Text("Start typing...") },
+        minLines = 3,
         textStyle = when (block.style) {
             is TextBlockStyle.Heading1 -> MaterialTheme.typography.headlineLarge
             is TextBlockStyle.Heading2 -> MaterialTheme.typography.headlineMedium
@@ -384,112 +440,233 @@ private fun TextBlockView(
             is TextBlockStyle.Heading6 -> MaterialTheme.typography.titleSmall
             else -> MaterialTheme.typography.bodyLarge
         },
-        colors = TextFieldDefaults.colors(
-            focusedContainerColor = MaterialTheme.colorScheme.surface,
-            unfocusedContainerColor = MaterialTheme.colorScheme.surface,
-            focusedIndicatorColor = MaterialTheme.colorScheme.primary,
-            unfocusedIndicatorColor = MaterialTheme.colorScheme.surfaceVariant
-        )
+        colors = OutlinedTextFieldDefaults.colors(
+            focusedBorderColor = MaterialTheme.colorScheme.primary,
+            unfocusedBorderColor = MaterialTheme.colorScheme.outline
+        ),
+        trailingIcon = {
+            IconButton(onClick = onDelete) {
+                Icon(
+                    Icons.Default.Delete,
+                    contentDescription = "Delete block",
+                    tint = MaterialTheme.colorScheme.error
+                )
+            }
+        }
     )
 }
 
 @Composable
-private fun MediaBlockView(
+internal fun MediaBlockView(
     block: MediaBlock,
     onUpdate: (ContentBlock) -> Unit,
     onDelete: () -> Unit
 ) {
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Text("Media: ${block.mediaType}", modifier = Modifier.padding(16.dp))
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
+        )
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+        ) {
+            Row(
+                verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+                modifier = Modifier.weight(1f)
+            ) {
+                Icon(
+                    if (block.mediaType == MediaType.IMAGE) Icons.Default.Image else Icons.Default.PlayArrow,
+                    contentDescription = null,
+                    modifier = Modifier.size(48.dp),
+                    tint = MaterialTheme.colorScheme.primary
+                )
+                Spacer(Modifier.width(16.dp))
+                Column {
+                    Text(
+                        text = if (block.mediaType == MediaType.IMAGE) "Image" else "Video",
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                    Text(
+                        text = block.uri,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+            IconButton(onClick = onDelete) {
+                Icon(
+                    Icons.Default.Delete,
+                    contentDescription = "Delete",
+                    tint = MaterialTheme.colorScheme.error
+                )
+            }
+        }
     }
 }
 
 @Composable
-private fun ChecklistBlockView(
+internal fun ChecklistBlockView(
     block: ChecklistBlock,
     onUpdate: (ContentBlock) -> Unit,
     onDelete: () -> Unit
 ) {
-    Column(modifier = Modifier.fillMaxWidth()) {
-        block.items.forEachIndexed { index, item ->
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
+        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
+    ) {
+        Column(modifier = Modifier.padding(8.dp)) {
+            // Header with delete button
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 4.dp),
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
             ) {
-                Checkbox(
-                    checked = item.isChecked,
-                    onCheckedChange = { checked ->
-                        val updatedItems = block.items.toMutableList()
-                        updatedItems[index] = item.copy(
-                            isChecked = checked,
-                            completedAt = if (checked) System.currentTimeMillis() else null
-                        )
-                        val updatedBlock = block.copy(items = updatedItems)
-                        onUpdate(updatedBlock)
-                    }
+                Text(
+                    text = "Checklist",
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                Spacer(Modifier.width(8.dp))
-                var itemText by remember(item.id) { mutableStateOf(item.text.text) }
-                TextField(
-                    value = itemText,
-                    onValueChange = { newText ->
-                        itemText = newText
-                        val updatedItems = block.items.toMutableList()
-                        updatedItems[index] = item.copy(
-                            text = androidx.compose.ui.text.AnnotatedString(newText)
-                        )
-                        val updatedBlock = block.copy(items = updatedItems)
-                        onUpdate(updatedBlock)
-                    },
-                    modifier = Modifier.weight(1f),
-                    placeholder = { Text("List item") },
-                    singleLine = true,
-                    colors = TextFieldDefaults.colors(
-                        focusedContainerColor = MaterialTheme.colorScheme.surface,
-                        unfocusedContainerColor = MaterialTheme.colorScheme.surface
+                IconButton(onClick = onDelete) {
+                    Icon(
+                        Icons.Default.Delete,
+                        contentDescription = "Delete checklist",
+                        tint = MaterialTheme.colorScheme.error
                     )
-                )
+                }
             }
-        }
 
-        // Add new item button
-        TextButton(
-            onClick = {
-                val newItem = ChecklistItem(
-                    text = androidx.compose.ui.text.AnnotatedString(""),
-                    position = block.items.size
-                )
-                val updatedBlock = block.copy(items = block.items + newItem)
-                onUpdate(updatedBlock)
-            },
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Icon(Icons.Default.Add, null)
-            Spacer(Modifier.width(8.dp))
-            Text("Add item")
+            // Checklist items
+            block.items.forEachIndexed { index, item ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 4.dp),
+                    verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+                ) {
+                    Checkbox(
+                        checked = item.isChecked,
+                        onCheckedChange = { checked ->
+                            val updatedItems = block.items.toMutableList()
+                            updatedItems[index] = item.copy(
+                                isChecked = checked,
+                                completedAt = if (checked) System.currentTimeMillis() else null
+                            )
+                            val updatedBlock = block.copy(items = updatedItems)
+                            onUpdate(updatedBlock)
+                        }
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    var itemText by remember(item.id) { mutableStateOf(item.text.text) }
+                    OutlinedTextField(
+                        value = itemText,
+                        onValueChange = { newText ->
+                            itemText = newText
+                            val updatedItems = block.items.toMutableList()
+                            updatedItems[index] = item.copy(
+                                text = androidx.compose.ui.text.AnnotatedString(newText)
+                            )
+                            val updatedBlock = block.copy(items = updatedItems)
+                            onUpdate(updatedBlock)
+                        },
+                        modifier = Modifier.weight(1f),
+                        placeholder = { Text("List item") },
+                        singleLine = true,
+                        textStyle = MaterialTheme.typography.bodyMedium
+                    )
+                }
+            }
+
+            // Add new item button
+            TextButton(
+                onClick = {
+                    val newItem = ChecklistItem(
+                        text = androidx.compose.ui.text.AnnotatedString(""),
+                        position = block.items.size
+                    )
+                    val updatedBlock = block.copy(items = block.items + newItem)
+                    onUpdate(updatedBlock)
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Icon(Icons.Default.Add, null)
+                Spacer(Modifier.width(8.dp))
+                Text("Add item")
+            }
         }
     }
 }
 
 @Composable
-private fun FileAttachmentBlockView(
+internal fun FileAttachmentBlockView(
     block: FileAttachmentBlock,
     onDelete: () -> Unit
 ) {
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Text("File: ${block.fileName}", modifier = Modifier.padding(16.dp))
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
+        )
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+        ) {
+            Row(
+                verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+                modifier = Modifier.weight(1f)
+            ) {
+                Icon(
+                    Icons.Default.AttachFile,
+                    contentDescription = null,
+                    modifier = Modifier.size(48.dp),
+                    tint = MaterialTheme.colorScheme.primary
+                )
+                Spacer(Modifier.width(16.dp))
+                Column {
+                    Text(
+                        text = block.fileName,
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                    Text(
+                        text = "File attachment",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+            IconButton(onClick = onDelete) {
+                Icon(
+                    Icons.Default.Delete,
+                    contentDescription = "Delete",
+                    tint = MaterialTheme.colorScheme.error
+                )
+            }
+        }
     }
 }
 
 @Composable
-private fun DividerBlockView(block: DividerBlock) {
-    HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+internal fun DividerBlockView(block: DividerBlock) {
+    HorizontalDivider(
+        modifier = Modifier.padding(vertical = 16.dp),
+        thickness = 2.dp,
+        color = MaterialTheme.colorScheme.outlineVariant
+    )
 }
 
 @Composable
-private fun CodeBlockView(
+internal fun CodeBlockView(
     block: CodeBlock,
     onUpdate: (ContentBlock) -> Unit,
     onDelete: () -> Unit
@@ -502,28 +679,46 @@ private fun CodeBlockView(
             containerColor = MaterialTheme.colorScheme.surfaceVariant
         )
     ) {
-        TextField(
-            value = code,
-            onValueChange = { newCode ->
-                code = newCode
-                val updatedBlock = block.copy(code = newCode)
-                onUpdate(updatedBlock)
-            },
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(8.dp),
-            placeholder = { Text("Enter code...") },
-            minLines = 5,
-            maxLines = Int.MAX_VALUE,
-            textStyle = MaterialTheme.typography.bodyMedium.copy(
-                fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace
-            ),
-            colors = TextFieldDefaults.colors(
-                focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-                unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-                focusedIndicatorColor = MaterialTheme.colorScheme.primary,
-                unfocusedIndicatorColor = MaterialTheme.colorScheme.surfaceVariant
+        Column(modifier = Modifier.padding(8.dp)) {
+            // Header with language and delete button
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+            ) {
+                Text(
+                    text = block.language ?: "Code",
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                IconButton(onClick = onDelete) {
+                    Icon(
+                        Icons.Default.Delete,
+                        contentDescription = "Delete code block",
+                        tint = MaterialTheme.colorScheme.error
+                    )
+                }
+            }
+
+            // Code editor
+            OutlinedTextField(
+                value = code,
+                onValueChange = { newCode ->
+                    code = newCode
+                    val updatedBlock = block.copy(code = newCode)
+                    onUpdate(updatedBlock)
+                },
+                modifier = Modifier.fillMaxWidth(),
+                placeholder = { Text("Enter code...") },
+                minLines = 5,
+                textStyle = MaterialTheme.typography.bodyMedium.copy(
+                    fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace
+                ),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                    unfocusedBorderColor = MaterialTheme.colorScheme.outline
+                )
             )
-        )
+        }
     }
 }
