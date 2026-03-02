@@ -5,7 +5,7 @@ plugins {
 }
 
 android {
-    namespace = "com.letsgotoperfection.journal"
+    namespace = "com.letsgotoperfection.editor.api"
     compileSdk = 36
 
     defaultConfig {
@@ -37,17 +37,16 @@ android {
 }
 
 dependencies {
-
+    // Core Android
     implementation(libs.androidx.core.ktx)
+
+    // Compose for AnnotatedString and UI models
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.ui)
-    implementation(libs.androidx.compose.material3)
-    implementation(libs.androidx.navigation.compose)
 
-    // Editor module for journal entries
-    implementation(project(":editor:api"))
+    // Coroutines
+    implementation(libs.coroutines)
 
+    // Testing
     testImplementation(libs.junit)
-    androidTestImplementation(libs.androidx.junit)
-    androidTestImplementation(libs.androidx.espresso.core)
 }
